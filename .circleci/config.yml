@@ -64,7 +64,7 @@ jobs:
             then
               echo "Cluster already exist"
             else
-              eksctl create cluster --name "my-cluster" --region=us-east-1
+              eksctl create cluster --name "my-cluster" --region=us-east-1 --zones=us-east-1a,us-east-1b
             fi
 
   deploy:
