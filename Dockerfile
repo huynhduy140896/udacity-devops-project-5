@@ -1,4 +1,4 @@
-from maven:3.9.4-jdk-11
+from maven:3.9.4-amazoncorretto-11-al2023
 
 WORKDIR /app
 
