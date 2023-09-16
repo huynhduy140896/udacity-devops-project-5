@@ -43,6 +43,81 @@ jobs:
             docker login --username $DOCKER_USERNAME --password $DOCKER_PASSWORD            
             docker push "huynhduy1420021/devops-project-5:${CIRCLE_WORKFLOW_ID:0:7}"
 
+  create-eksCluster:
+    docker:
+      - image: amazon/aws-cli
+    steps:
+      - checkout
+      - run: yum install -y tar gzip
+      - run:
+          name: install eksctl
+          command: |
+            ARCH=amd64
+            PLATFORM=$(uname -s)_$ARCH
+            curl -sLO "https://github.com/weaveworks/eksctl/releases/latest/download/eksctl_$PLATFORM.tar.gz"
+            tar -xzf eksctl_$PLATFORM.tar.gz -C /tmp && rm eksctl_$PLATFORM.tar.gz
+            mv /tmp/eksctl /usr/local/bin
+      - run: 
+          name: Create new cluster
+          command: |
+            if eksctl get cluster  --name "my-cluster" --region=us-east-1
+            then
+              echo "Cluster already exist"
+            else
+              eksctl create cluster --name "my-cluster" --region=us-east-1
+            fi
+
+  deploy:
+    docker:
+      - image: amazon/aws-cli
+    steps:
+      - checkout
+      - run: yum install -y tar gzip
+      - run:
+          name: Install kubectl
+          command: |
+            curl -LO https://storage.googleapis.com/kubernetes-release/release/`curl -s https://storage.googleapis.com/kubernetes-release/release/stable.txt`/bin/linux/amd64/kubectl
+            install -o root -g root -m 0755 kubectl /usr/local/bin/kubectl
+      - run:
+          name: Config kubectl to cluster
+          command: |
+            aws eks update-kubeconfig --region us-east-1  --name my-cluster
+      - run:
+          name: Deploy application
+          command: |
+            kubectl create deploy devops-project-5:${CIRCLE_WORKFLOW_ID:0:7} --image="huynhduy1420021/devops-project-5:${CIRCLE_WORKFLOW_ID:0:7}" --port 8080
+      - run:
+          name: Expose application
+          command: |
+            kubectl expose deploy devops-project-5:${CIRCLE_WORKFLOW_ID:0:7} --type=LoadBalancer --port=8080
+            sleep 1m
+
+  smoke-test:
+    docker:
+      - image: amazon/aws-cli
+    steps:
+      - checkout
+      - run: yum install -y tar gzip
+      - run:
+          name: Install kubectl
+          command: |
+            curl -LO https://storage.googleapis.com/kubernetes-release/release/`curl -s https://storage.googleapis.com/kubernetes-release/release/stable.txt`/bin/linux/amd64/kubectl
+            install -o root -g root -m 0755 kubectl /usr/local/bin/kubectl
+      - run:
+          name: Config kubectl to cluster
+          command: |
+            aws eks update-kubeconfig --region us-east-1  --name my-cluster
+      - run:
+          name: test
+          command: |
+            ip_address=$(kubectl get services cloud-devops-project5-${CIRCLE_WORKFLOW_ID:0:7}-deployment --output jsonpath='{.status.loadBalancer.ingress[0].hostname}')
+      - run:
+          name: Expose application
+          command: |
+            kubectl expose deploy devops-project-5:${CIRCLE_WORKFLOW_ID:0:7} --type=LoadBalancer --port=8080
+            sleep 1m
+      
+
 workflows:
   say-hello-workflow:
     jobs:
@@ -51,3 +126,7 @@ workflows:
           requires: [build]
       - push-image:
           requires: [unit-test]
+      - create-eksCluster:
+          requires: [push-image]
+      - deploy: 
+          requires: [create-eksCluster]
