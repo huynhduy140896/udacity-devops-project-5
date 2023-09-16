@@ -1,4 +1,4 @@
-from maven:3.9.4-amazoncorretto-11-al2023
+from maven:3-amazoncorretto-17-al2023
 
 WORKDIR /app
 
