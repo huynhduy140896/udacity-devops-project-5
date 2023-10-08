@@ -15,6 +15,7 @@ jobs:
       - run:
           name: "Check syntaxt"
           command: |
+            make install
             make lint
   build:
     docker:
