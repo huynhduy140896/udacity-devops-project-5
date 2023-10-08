@@ -129,7 +129,7 @@ jobs:
             echo ${APP_ENDPOINT} 
             
 
-            if curl ${APP_ENDPOINT} | grep "Pong"
+            if curl ${APP_ENDPOINT} | grep Pong
             then
               return 0
             else
