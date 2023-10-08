@@ -128,8 +128,8 @@ jobs:
             export APP_ENDPOINT="http://${APP_IP}:8080/ping"
             echo ${APP_ENDPOINT} 
             
-
-            if curl ${APP_ENDPOINT} | grep Pong
+            curl ${APP_ENDPOINT} > data.txt
+            if cat data.txt | grep Pong
             then
               return 0
             else
