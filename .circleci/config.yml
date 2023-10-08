@@ -85,11 +85,11 @@ jobs:
       - run:
           name: Deploy application
           command: |
-            kubectl create deploy devops-project-5:${CIRCLE_WORKFLOW_ID:0:7} --image="huynhduy1420021/devops-project-5:${CIRCLE_WORKFLOW_ID:0:7}" --port 8080
+            kubectl create deploy devops-project-5-${CIRCLE_WORKFLOW_ID:0:7} --image="huynhduy1420021/devops-project-5:${CIRCLE_WORKFLOW_ID:0:7}" --port 8080
       - run:
           name: Expose application
           command: |
-            kubectl expose deploy devops-project-5:${CIRCLE_WORKFLOW_ID:0:7} --type=LoadBalancer --port=8080
+            kubectl expose deploy devops-project-5-${CIRCLE_WORKFLOW_ID:0:7} --type=LoadBalancer --port=8080
             sleep 1m
 
   smoke-test:
@@ -110,13 +110,42 @@ jobs:
       - run:
           name: test
           command: |
-            ip_address=$(kubectl get services cloud-devops-project5-${CIRCLE_WORKFLOW_ID:0:7}-deployment --output jsonpath='{.status.loadBalancer.ingress[0].hostname}')
+            APP_IP=$(kubectl get services devops-project-5-${CIRCLE_WORKFLOW_ID:0:7} --output jsonpath='{.status.loadBalancer.ingress[0].hostname}')
+            export APP_ENDPOINT="http://${APP_IP}/ping"
+            echo ${APP_ENDPOINT} 
+            
+
+            if curl ${APP_ENDPOINT} | grep "Pong"
+            then
+              return 0
+            else
+              return 1
+            fi
+  
+  cleanup:
+    docker:
+      - image: amazon/aws-cli
+    steps:
+      - checkout
+      - run: yum install -y tar gzip
+      - attach_workspace:
+          at: ~/
       - run:
-          name: Expose application
+          name: Install kubectl
           command: |
-            kubectl expose deploy devops-project-5:${CIRCLE_WORKFLOW_ID:0:7} --type=LoadBalancer --port=8080
-            sleep 1m
-      
+            curl -LO https://storage.googleapis.com/kubernetes-release/release/`curl -s https://storage.googleapis.com/kubernetes-release/release/stable.txt`/bin/linux/amd64/kubectl
+            install -o root -g root -m 0755 kubectl /usr/local/bin/kubectl
+      - run:
+          name: Config kubectl connect to aws
+          command: |
+            aws eks update-kubeconfig --region us-east-1  --name udacity-devops-project-final
+      - run:
+          name: Clean old service
+          command: |
+            kubectl get services | grep devops-project-5 > tmp-services.txt
+            sed 's/ .*//' tmp-services.txt > services.txt 
+            SERVICE=devops-project-5:${CIRCLE_WORKFLOW_ID:0:7}
+            kubectl delete service $(cat  services.txt| sed 's/'$SERVICE'//g' | sed -r '/^\s*$/d')
 
 workflows:
   say-hello-workflow:
@@ -130,3 +159,7 @@ workflows:
           requires: [push-image]
       - deploy: 
           requires: [create-eksCluster]
+      - smoke-test: 
+          requires: [deploy]
+      - cleanup: 
+          requires: [deploy]
