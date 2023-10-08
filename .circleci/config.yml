@@ -152,7 +152,7 @@ jobs:
           command: |
             kubectl get services | grep devops-project-5 > tmp-services.txt
             sed 's/ .*//' tmp-services.txt > services.txt 
-            SERVICE=devops-project-5:${CIRCLE_WORKFLOW_ID:0:7}
+            SERVICE=devops-project-5-${CIRCLE_WORKFLOW_ID:0:7}
             kubectl delete service $(cat  services.txt| sed 's/'$SERVICE'//g' | sed -r '/^\s*$/d')
 
 workflows:
