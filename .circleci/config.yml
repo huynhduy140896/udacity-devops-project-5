@@ -179,4 +179,4 @@ workflows:
       - smoke-test: 
           requires: [deploy]
       - cleanup: 
-          requires: [deploy]
+          requires: [smoke-test]
