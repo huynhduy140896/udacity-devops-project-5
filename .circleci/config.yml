@@ -3,6 +3,19 @@
 version: 2.1
 
 jobs:
+  check_syntax:
+    docker:
+      - image: python:3.7.3-stretch
+    steps:
+      - checkout
+      - run: 
+          name: "create venv"
+          command: |
+            python3 -m venv ~/.devops
+      - run:
+          name: "Check syntaxt"
+          command: |
+            make lint
   build:
     docker:
       - image: maven:3-amazoncorretto-17-al2023
@@ -81,7 +94,7 @@ jobs:
       - run:
           name: Config kubectl to cluster
           command: |
-            aws eks update-kubeconfig --region us-east-1  --name my-cluster
+            aws eks update-kubeconfig --region us-east-1  --name my-cluster1
       - run:
           name: Deploy application
           command: |
@@ -106,7 +119,7 @@ jobs:
       - run:
           name: Config kubectl to cluster
           command: |
-            aws eks update-kubeconfig --region us-east-1  --name my-cluster
+            aws eks update-kubeconfig --region us-east-1  --name my-cluster1
       - run:
           name: test
           command: |
@@ -150,7 +163,10 @@ jobs:
 workflows:
   say-hello-workflow:
     jobs:
-      - build
+      - check_syntax
+
+      - build:
+          requires: [check_syntax]
       - unit-test:
           requires: [build]
       - push-image:
