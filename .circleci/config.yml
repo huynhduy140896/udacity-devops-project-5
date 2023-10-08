@@ -125,7 +125,7 @@ jobs:
           name: test
           command: |
             APP_IP=$(kubectl get services devops-project-5-${CIRCLE_WORKFLOW_ID:0:7} --output jsonpath='{.status.loadBalancer.ingress[0].hostname}')
-            export APP_ENDPOINT="http://${APP_IP}/ping"
+            export APP_ENDPOINT="http://${APP_IP}:8080/ping"
             echo ${APP_ENDPOINT} 
             
 
